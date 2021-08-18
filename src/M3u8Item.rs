@@ -36,8 +36,27 @@ impl M3u8Entity {
                 mm.clip_urls.push(li.to_string());
             }
         }
-        mm.key = reqKey(&mm.key_url);
+        // mm.key = reqKey(&mm.key_url);
         mm
+    }
+    pub fn reqKey(&mut self) {
+        if !(&self.key_url).starts_with("http") {
+            self.key_url = self.url_prefix.as_ref().unwrap().to_string() + &self.key_url;
+        }
+        println!("req_key key_url={}", &self.key_url);
+        let raw_bytes = http::query_bytes(&self.key_url);
+        let mut key_bytes = [0u8;16];
+        let len = raw_bytes.len();
+        if len != 16 {
+            panic!("reqKey failed");
+        }
+        let mut idx=0;
+        for b in raw_bytes {
+            key_bytes[idx] = b;
+            idx += 1;
+        }
+        self.key = key_bytes;
+        println!("bytes={:?}", key_bytes);
     }
     fn to_string(&self)->String{
         format!("{{method={},key_url={},\nkey={:?},\niv={:?},\nclip_urls={:?}}}",
@@ -105,20 +124,4 @@ fn parse_hex_char(ac: char) -> u8 {
     }else {
         nu - ('a' as u8) + 10
     }
-}
-
-fn reqKey(key_url: &str) -> [u8; 16] {
-    let raw_bytes = http::query_bytes(key_url);
-    let mut key_bytes = [0u8;16];
-    let len = raw_bytes.len();
-    if len != 16 {
-        panic!("reqKey failed");
-    }
-    let mut idx=0;
-    for b in raw_bytes {
-        key_bytes[idx] = b;
-        idx += 1;
-    }
-    println!("bytes={:?}", key_bytes);
-    key_bytes
 }

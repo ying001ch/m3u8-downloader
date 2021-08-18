@@ -36,6 +36,8 @@ fn process(entity: &mut M3u8Item::M3u8Entity, save_path: &str, m3u8_url: &str) {
     }
     entity.url_prefix = Some((&m3u8_url[0..idx2 as usize]).to_string()+"/");
     println!("url_prefix = {}", entity.url_prefix.as_ref().unwrap());
+
+    entity.reqKey();
 }
 fn index_of(ch: char, str: &str)->i32{
     let mut idx=0;
