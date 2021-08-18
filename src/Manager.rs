@@ -1,8 +1,13 @@
 use crate::http;
 use crate::M3u8Item;
 use crate::aes_demo;
+use std::borrow::Borrow;
 use std::env;
 use std::io::Write;
+use std::slice::Iter;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
 
 pub fn run(){
     println!("Hello this is M3u8-Downloader by rust");
@@ -68,32 +73,68 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
     println!("url_prefix={}, savePath={}", entity.url_prefix.as_ref().unwrap(),
             entity.savePath.as_ref().unwrap());
 
-    let key = &entity.key;            
-    let iv = &entity.iv;            
-    let prefix = entity.url_prefix.as_ref().unwrap();
-    let clips = &entity.clip_urls;            
-    for clip in clips {
-        let down_url = prefix.to_string() + clip.as_str();
-        println!("--> {}", down_url);
+    let clip_urls = entity.clip_urls.clone();
+    let it = Arc::new(Mutex::new(clip_urls));
+    let entity_it = Arc::new(entity);
+    let couter = Arc::new(Mutex::new(0));
 
-        let result = http::query_bytes(&down_url);
-        let mut byte_vec = vec![];
-        for b in result {
-            byte_vec.push(b);
-        }
-        let result = aes_demo::decrypt(&byte_vec, key, iv);
-        write_file(&result, &entity);
-        println!("下载成功！\n\n");
+    let mut vcs = vec![];
+    for i in 0..8{
+        let clone_counter = Arc::clone(&couter);
+        let clone_it = Arc::clone(&it);
+        let clone_entity = Arc::clone(&entity_it);
+        let handler = thread::spawn(move ||{
+            while true {
+                let dd = clone_entity.as_ref();
+                let key = &dd.key;
+                let iv = &dd.iv;            
+                let prefix = dd.url_prefix.as_ref().unwrap();
+        
+                let mut clip;
+                {
+                    let mut vec = clone_it.lock().unwrap();
+                    let aa = vec.pop();
+                    if aa.is_none() {
+                        break;
+                    }
+                    clip = aa.unwrap();
+                }
+        
+                let down_url = prefix.to_string() + clip.as_str();
+                println!("--> {}", down_url);
+        
+                let result = http::query_bytes(&down_url);
+                let mut byte_vec = vec![];
+                for b in result {
+                    byte_vec.push(b);
+                }
+                let result = aes_demo::decrypt(&byte_vec, key, iv);
+
+                let mut co = 0;
+                {
+                    let mut counter = clone_counter.lock().unwrap();
+                    *counter += 1;
+                    co = *counter;
+                }
+
+                write_file(&result, &dd, co);
+                println!("下载成功！\n\n");
+            }
+        });
+        vcs.push(handler);
+    }
+    for ha in vcs {
+        ha.join().expect("线程被中断");
     }
 }
 
-fn write_file(result: &[u8], entity: &M3u8Item::M3u8Entity) {
-    static mut counter:i32 = 0;
-    let mut idx=0;
-    unsafe{
-        counter += 1;
-        idx = counter;
-    }
+fn write_file(result: &[u8], entity: &M3u8Item::M3u8Entity, counter: i32) {
+    // static mut counter:i32 = 0;
+    let mut idx=counter;
+    // unsafe{
+    //     counter += 1;
+    //     idx = counter;
+    // }
     let save_path = entity.savePath.as_ref().unwrap();
     let mut file = std::fs::File::create(format!("{}/{}.ts", save_path, idx))
             .expect("open file failed");

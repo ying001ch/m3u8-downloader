@@ -18,9 +18,12 @@ pub fn main() {
     println!("读取完毕！");
 }
 pub fn query_bytes(url: &str) ->Bytes {
-    let body = reqwest::blocking
-            ::get(url);
-    let ar = [0];
+    let proxy = reqwest::Proxy::all("http://127.0.0.1:1081")
+            .expect("socks proxy should be there");
+    let client = reqwest::blocking::Client::builder().proxy(proxy).build()
+            .expect("should be able to build reqwest client");
+
+    let body = client.get(url).send();
     match body {
         Ok(res) => res.bytes().expect("query bytes failed"),
         Err(err) => {
