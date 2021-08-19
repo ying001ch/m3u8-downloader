@@ -1,6 +1,7 @@
 use crate::http;
 use crate::M3u8Item;
 use crate::aes_demo;
+use crate::combine;
 use std::borrow::Borrow;
 use std::env;
 use std::io::Write;
@@ -13,17 +14,19 @@ pub fn run(){
     println!("Hello this is M3u8-Downloader by rust");
 
     let args:Vec<String> = env::args().collect();
-    let savePath = args[1].as_str();
+    let save_path = args[1].as_str();
     let m3u8Url = args[2].as_str();
 
     //1. 解析m3u8文件
     let content = http::query_text(m3u8Url);
     let mut entity = M3u8Item::M3u8Entity::from(content);
-    process(&mut entity, savePath, m3u8Url);
+    process(&mut entity, save_path, m3u8Url);
 
     download_decode(entity);
 
     println!("下载完毕！");
+
+    combine::combine_clip(save_path);
 }
 
 fn process(entity: &mut M3u8Item::M3u8Entity, save_path: &str, m3u8_url: &str) {
