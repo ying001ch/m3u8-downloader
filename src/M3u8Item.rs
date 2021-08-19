@@ -36,7 +36,7 @@ impl M3u8Entity {
                 mm.clip_urls.push(li.to_string());
             }
         }
-        // mm.key = reqKey(&mm.key_url);
+        println!("clip num: {}", mm.clip_urls.len());
         mm
     }
     pub fn reqKey(&mut self) {
@@ -56,7 +56,7 @@ impl M3u8Entity {
             idx += 1;
         }
         self.key = key_bytes;
-        println!("bytes={:?}", key_bytes);
+        println!("key_bytes={:?}", key_bytes);
     }
     fn to_string(&self)->String{
         format!("{{method={},key_url={},\nkey={:?},\niv={:?},\nclip_urls={:?}}}",
@@ -98,9 +98,6 @@ fn hex2Byte(mut val: & str) -> [u8; 16] {
         idx += 2;
     }
 
-    for b in bytes {
-        println!("b=b{}", b);
-    }
     return bytes;
 }
 

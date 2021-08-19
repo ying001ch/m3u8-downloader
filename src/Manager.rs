@@ -21,8 +21,6 @@ pub fn run(){
     let mut entity = M3u8Item::M3u8Entity::from(content);
     process(&mut entity, savePath, m3u8Url);
 
-    entity.savePath = Some(savePath.to_string());
-
     download_decode(entity);
 
     println!("下载完毕！");
@@ -70,7 +68,7 @@ fn last_index(ch: char, str: &str)->i32{
 }
 
 fn download_decode(entity: M3u8Item::M3u8Entity) {
-    println!("url_prefix={}, savePath={}", entity.url_prefix.as_ref().unwrap(),
+    println!("savePath={}",
             entity.savePath.as_ref().unwrap());
 
     let clip_urls = entity.clip_urls.clone();
@@ -90,14 +88,19 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                 let iv = &dd.iv;            
                 let prefix = dd.url_prefix.as_ref().unwrap();
         
-                let mut clip;
+                let clip;
+                let co;
                 {
-                    let mut vec = clone_it.lock().unwrap();
-                    let aa = vec.pop();
-                    if aa.is_none() {
+                    let mut counter = clone_counter.lock().unwrap();
+
+                    let vec = clone_it.lock().unwrap();
+                    if *counter >= vec.len() {
                         break;
                     }
-                    clip = aa.unwrap();
+                    let aa = vec[*counter].clone();
+                    clip = aa;
+                    *counter += 1;
+                    co = (*counter) as i32;
                 }
         
                 let down_url = prefix.to_string() + clip.as_str();
@@ -110,14 +113,8 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                 }
                 let result = aes_demo::decrypt(&byte_vec, key, iv);
 
-                let mut co = 0;
-                {
-                    let mut counter = clone_counter.lock().unwrap();
-                    *counter += 1;
-                    co = *counter;
-                }
 
-                write_file(&result, &dd, co);
+                write_file(&result, &dd, make_name(co));
                 println!("下载成功！\n\n");
             }
         });
@@ -128,16 +125,20 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
     }
 }
 
-fn write_file(result: &[u8], entity: &M3u8Item::M3u8Entity, counter: i32) {
-    // static mut counter:i32 = 0;
-    let mut idx=counter;
-    // unsafe{
-    //     counter += 1;
-    //     idx = counter;
-    // }
+fn make_name(num: i32) -> String {
+    if num < 1000 {
+        let s = format!("{}",num);
+        let pad = "0".repeat(4-s.len()) + &s;
+
+        return pad;
+    }
+    format!("{}",num)
+}
+
+fn write_file(result: &[u8], entity: &M3u8Item::M3u8Entity, file_name: String) {
     let save_path = entity.savePath.as_ref().unwrap();
-    let mut file = std::fs::File::create(format!("{}/{}.ts", save_path, idx))
+    let mut file = std::fs::File::create(format!("{}/{}.ts", save_path, file_name))
             .expect("open file failed");
     let usize = file.write(result).expect("写入文件失败");
-    println!("写入成功 counter:{}, size: {}", idx, usize);
+    println!("写入成功 counter:{}, size: {}", file_name, usize);
 }
