@@ -19,7 +19,7 @@
                     "kind": "bin"
                 }
             },
-            "args": ["./download","https://1258712167.vod2.myqcloud.com/fb8e6c92vodtranscq1258712167/0a4498463701925922711639176/drm/voddrm.token.dWluPTE3NDg4OTkxNzM7c2tleT07cHNrZXk9O3Bsc2tleT0wMDA0MDAwMDE2YWYyZGU4ZGVlYTAzOTY3ZmNkZmY4ZDRmYTkzNWJkYzQ2N2YxMTEyNWI0NmJiMDljOTE4MTI3YzU0MDRhYTIxODViODZiYmY3NjNmOGZlO2V4dD07dWlkX3R5cGU9MDt1aWRfb3JpZ2luX3VpZF90eXBlPTA7Y2lkPTIzMTUxNjt0ZXJtX2lkPTEwMzU4OTIzNTt2b2RfdHlwZT0w.v.f56150.m3u8?exper=0&sign=f9c1a6aa736273ac70f6b1f53d919482&t=61448767&us=3245911524340397266"],
+            "args": ["./download","https://m3u8Address"],
             "cwd": "${workspaceFolder}"
         },
         {
