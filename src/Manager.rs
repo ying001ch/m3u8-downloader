@@ -1,7 +1,8 @@
-use crate::http;
+use crate::http_util;
 use crate::M3u8Item;
 use crate::aes_demo;
 use crate::combine;
+use core::panic;
 use std::borrow::Borrow;
 use std::env;
 use std::io::Write;
@@ -17,8 +18,26 @@ pub fn run(){
     let save_path = args[1].as_str();
     let m3u8Url = args[2].as_str();
 
-    //1. 解析m3u8文件
-    let content = http::query_text(m3u8Url);
+    let content;
+    if args[3] == "--file"{
+        //1. 解析m3u8文件
+        if args.len() < 5{
+            panic!("--file 需要指定m3u8文件路径");
+        }
+        content = std::fs::read_to_string(&args[4]).unwrap();
+    }else{
+        //1. 解析m3u8文件
+        content = http_util::query_text(m3u8Url);
+    }
+    println!("content: \n{}", &content);
+
+    let pr = args.iter().filter(|&e|e.contains("--proxy"))
+            .map(|e|e.replace("--proxy=", ""))
+            .find(|e|true);
+    if pr.is_some(){
+        http_util::set_proxy(pr.unwrap());
+    }            
+    
     let mut entity = M3u8Item::M3u8Entity::from(content);
     process(&mut entity, save_path, m3u8Url);
 
@@ -62,7 +81,7 @@ fn last_index(ch: char, str: &str)->i32{
     while idx >= 0{
         let c = str.get(idx..idx+1).unwrap();
         if c == chstr{
-            println!("c={}",c);
+            // println!("c={}",c);
             return idx as i32;
         }
         idx -= 1;
@@ -105,13 +124,22 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                     *counter += 1;
                     co = (*counter) as i32;
                 }
+                let file_ex = std::fs::File::open(format!("{}/{}.ts",
+                         dd.savePath.as_ref().unwrap(), make_name(co)));
+                if file_ex.is_ok() {
+                    continue;
+                }
         
                 let down_url = prefix.to_string() + clip.as_str();
                 println!("--> {}", down_url);
         
-                let result = http::query_bytes(&down_url);
+                let result = http_util::query_bytes(&down_url);
+                if result.is_err(){
+                    println!("{}", result.as_ref().unwrap_err());
+                    continue;
+                }
                 let mut byte_vec = vec![];
-                for b in result {
+                for b in result.unwrap() {
                     byte_vec.push(b);
                 }
                 let result = aes_demo::decrypt(&byte_vec, key, iv);

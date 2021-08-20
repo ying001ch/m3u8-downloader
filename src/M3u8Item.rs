@@ -1,4 +1,4 @@
-use super::http;
+use super::http_util;
 
 pub struct M3u8Entity{
     // content: String,
@@ -36,6 +36,9 @@ impl M3u8Entity {
                 mm.clip_urls.push(li.to_string());
             }
         }
+        if mm.key_url.len()==0 || mm.clip_urls.len()==0{
+            panic!("M3U8 元信息解析错误，content: \n{}", content);
+        }
         println!("clip num: {}", mm.clip_urls.len());
         mm
     }
@@ -44,7 +47,7 @@ impl M3u8Entity {
             self.key_url = self.url_prefix.as_ref().unwrap().to_string() + &self.key_url;
         }
         println!("req_key key_url={}", &self.key_url);
-        let raw_bytes = http::query_bytes(&self.key_url);
+        let raw_bytes = http_util::query_bytes(&self.key_url).unwrap();
         let mut key_bytes = [0u8;16];
         let len = raw_bytes.len();
         if len != 16 {

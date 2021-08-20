@@ -1,7 +1,9 @@
-use reqwest::{blocking::Response, IntoUrl};
+use reqwest::{IntoUrl, blocking::{Response, get}, header::HeaderMap};
 use std::{collections::HashMap, io::{Read, Write}};
 use bytes::Bytes;
+use reqwest::Proxy;
 
+static mut proxys:String = String::new();
 pub fn main() {
     let body = reqwest::blocking
             ::get("https://address");
@@ -17,18 +19,25 @@ pub fn main() {
     write_file(resp);
     println!("读取完毕！");
 }
-pub fn query_bytes(url: &str) ->Bytes {
-    let proxy = reqwest::Proxy::all("http://127.0.0.1:1081")
-            .expect("socks proxy should be there");
-    let client = reqwest::blocking::Client::builder().proxy(proxy).build()
-            .expect("should be able to build reqwest client");
+pub fn query_bytes(url: &str) ->std::result::Result<Bytes, reqwest::Error> {
+    let client;
+    if get_proxy().len()>0{
+        let proxy = reqwest::Proxy::all(get_proxy())
+                .expect("socks proxy should be there");
+        client = reqwest::blocking::Client::builder().proxy(proxy).build()
+        .expect("should be able to build reqwest client");
+    }else{
+        client = reqwest::blocking::Client::builder()
+                .build()
+                .expect("should be able to build reqwest client");
+    }
 
     let body = client.get(url).send();
     match body {
-        Ok(res) => res.bytes().expect("query bytes failed"),
+        Ok(res) => Ok(res.bytes().unwrap()),
         Err(err) => {
             println!("{}", err);
-            panic!("err 發生");
+            Err(err)
         }
     }
 }
@@ -62,5 +71,16 @@ fn write_file(mut reader: Response) {
         } else {
             panic!("读取失败");
         }
+    }
+}
+fn get_proxy()->&'static str{
+    unsafe {
+        &proxys
+    }
+}
+pub fn set_proxy(proxy_s: String){
+    println!("proxy={}", &proxy_s);
+    unsafe {
+        proxys = proxy_s;
     }
 }
