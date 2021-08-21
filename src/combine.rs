@@ -1,4 +1,4 @@
-use std::{io::Write, process::Command};
+use std::{env, io::Write, process::Command};
 
 pub fn combine_clip(save_path: &str) ->Result<(),String>{
     // 1. 检测环境变量
@@ -28,13 +28,14 @@ pub fn combine_clip(save_path: &str) ->Result<(),String>{
     println!("com_file_name: {}", &com_file_name);
    
 
+    let output_name = get_output_name();
     // 3.调用合并
     let output = 
         Command::new("cmd")
                 .arg("/c")
                 .arg(ffmpeg).arg("-f").arg("concat").arg("-i")
                 .arg(com_file_name.as_str()).arg("-c").arg("copy")
-                .arg("output.mp4")
+                .arg(output_name)
                 .output()
                 .expect("ffmpeg exec error!");
     
@@ -42,4 +43,11 @@ pub fn combine_clip(save_path: &str) ->Result<(),String>{
     println!("output_str={}", output_str);
 
     Ok(())
+}
+
+fn get_output_name() ->String {
+     env::args().filter(|e|e.contains("--output="))
+            .map(|e|e.replace("--output=", ""))
+            .find(|_e|true).unwrap_or("output.mp4".to_string())
+
 }

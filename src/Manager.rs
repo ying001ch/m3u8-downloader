@@ -61,7 +61,7 @@ fn process(entity: &mut M3u8Item::M3u8Entity, save_path: &str, m3u8_url: &str) {
     entity.url_prefix = Some((&m3u8_url[0..idx2 as usize]).to_string()+"/");
     println!("url_prefix = {}", entity.url_prefix.as_ref().unwrap());
 
-    entity.reqKey();
+    entity.req_key();
 }
 fn index_of(ch: char, str: &str)->i32{
     let mut idx=0;
@@ -141,8 +141,13 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                 for b in result.unwrap() {
                     byte_vec.push(b);
                 }
-                let result = aes_demo::decrypt(&byte_vec, key, iv);
-
+                
+                let result;
+                if dd.need_decode() {
+                    result = aes_demo::decrypt(&byte_vec, key, iv);
+                }else{
+                    result = byte_vec;
+                }
 
                 write_file(&result, &dd, make_name(co));
                 println!("下载成功！\n\n");
