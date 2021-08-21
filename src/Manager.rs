@@ -19,7 +19,7 @@ pub fn run(){
     let m3u8Url = args[2].as_str();
 
     let content;
-    if args[3] == "--file"{
+    if args.len() >= 4 && args[3] == "--file"{
         //1. 解析m3u8文件
         if args.len() < 5{
             panic!("--file 需要指定m3u8文件路径");
@@ -29,7 +29,6 @@ pub fn run(){
         //1. 解析m3u8文件
         content = http_util::query_text(m3u8Url);
     }
-    println!("content: \n{}", &content);
 
     let pr = args.iter().filter(|&e|e.contains("--proxy"))
             .map(|e|e.replace("--proxy=", ""))
