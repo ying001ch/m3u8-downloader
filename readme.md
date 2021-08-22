@@ -14,6 +14,14 @@
 cargo build --release
 ```
 
+- 合并视频片段使用了 FFMPEG，需要事先下载好并配置环境变量 `FFMPEG_PATH`
+
+```shell
+FFMPEG_PATH="/ffmpeg/bin"
+```
+
+
+
 # 2. 使用
 
 - 通过m3u8下载视频且合并片段
