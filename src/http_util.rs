@@ -1,8 +1,6 @@
-use aes::cipher::generic_array::sequence::Split;
-use reqwest::{IntoUrl, blocking::{Client, Response, get}, header::HeaderMap};
-use std::{collections::HashMap, env, io::{Read, Write}};
+use reqwest::{blocking::{Client, Response}};
+use std::{env, io::{Read, Write}};
 use bytes::Bytes;
-use reqwest::Proxy;
 use crate::str_util;
 
 
@@ -10,7 +8,6 @@ pub struct ReqParam{
     proxys: String,
     headers: Vec<(String,String)>,
 }
-static mut proxys:String = String::new();
 static mut req_param :ReqParam = 
     ReqParam{proxys: String::new(),
      headers: vec![],

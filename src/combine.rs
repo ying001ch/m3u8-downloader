@@ -1,6 +1,6 @@
 use std::{env, io::Write, process::Command};
 
-pub fn combine_clip(save_path: &str) ->Result<(),String>{
+pub fn combine_clip(save_path: &str) {
     // 1. 检测环境变量
     let ffmpeg_dir = std::env::var("FFMPEG_PATH")
     .expect("没有配置 FFMPEG_PATH 环境变量");
@@ -41,8 +41,6 @@ pub fn combine_clip(save_path: &str) ->Result<(),String>{
     
     let output_str = String::from_utf8_lossy(&output.stderr);
     println!("output_str={}", output_str);
-
-    Ok(())
 }
 
 fn get_output_name() ->String {

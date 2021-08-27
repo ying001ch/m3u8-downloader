@@ -4,10 +4,8 @@ use crate::http_util;
 use crate::M3u8Item;
 use crate::str_util;
 use core::panic;
-use std::borrow::Borrow;
 use std::env;
 use std::io::Write;
-use std::slice::Iter;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
@@ -17,7 +15,7 @@ pub fn run() {
 
     let args: Vec<String> = env::args().collect();
     let save_path = args[1].as_str();
-    let m3u8Url = args[2].as_str();
+    let m3u8_url = args[2].as_str();
 
     let pr = args
         .iter()
@@ -38,11 +36,11 @@ pub fn run() {
         content = std::fs::read_to_string(&args[4]).unwrap();
     } else {
         //1. 解析m3u8文件
-        content = http_util::query_text(m3u8Url);
+        content = http_util::query_text(m3u8_url);
     }
 
     let mut entity = M3u8Item::M3u8Entity::from(content);
-    process(&mut entity, save_path, m3u8Url);
+    process(&mut entity, save_path, m3u8_url);
 
     download_decode(entity);
 
@@ -52,7 +50,7 @@ pub fn run() {
 }
 
 fn process(entity: &mut M3u8Item::M3u8Entity, save_path: &str, m3u8_url: &str) {
-    entity.savePath = Some(save_path.to_string());
+    entity.save_path = Some(save_path.to_string());
 
     let mut idx1 = str_util::index_of('?', m3u8_url);
     if idx1 == -1 {
@@ -68,7 +66,7 @@ fn process(entity: &mut M3u8Item::M3u8Entity, save_path: &str, m3u8_url: &str) {
     entity.req_key();
 }
 fn download_decode(entity: M3u8Item::M3u8Entity) {
-    println!("savePath={}", entity.savePath.as_ref().unwrap());
+    println!("savePath={}", entity.save_path.as_ref().unwrap());
 
     let clip_urls = entity.clip_urls.clone();
     let it = Arc::new(Mutex::new(clip_urls));
@@ -103,7 +101,7 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                 }
                 let file_ex = std::fs::File::open(format!(
                     "{}/{}.ts",
-                    dd.savePath.as_ref().unwrap(),
+                    dd.save_path.as_ref().unwrap(),
                     make_name(co)
                 ));
                 if file_ex.is_ok() {
@@ -152,7 +150,7 @@ fn make_name(num: i32) -> String {
 }
 
 fn write_file(result: &[u8], entity: &M3u8Item::M3u8Entity, file_name: String) {
-    let save_path = entity.savePath.as_ref().unwrap();
+    let save_path = entity.save_path.as_ref().unwrap();
     let mut file =
         std::fs::File::create(format!("{}/{}.ts", save_path, file_name)).expect("open file failed");
     let usize = file.write(result).expect("写入文件失败");

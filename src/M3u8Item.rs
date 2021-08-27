@@ -9,7 +9,7 @@ pub struct M3u8Entity{
     
     pub clip_urls: Vec<String>,
     pub url_prefix: Option<String>,
-    pub savePath: Option<String>,
+    pub save_path: Option<String>,
 }
 impl M3u8Entity {
     pub fn from(content: String) -> M3u8Entity {
@@ -25,7 +25,7 @@ impl M3u8Entity {
             key_url,
             key,
             iv,
-            savePath:None
+            save_path:None
         };
         let lines  = content.lines();
         for li in lines {

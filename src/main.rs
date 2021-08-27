@@ -13,7 +13,7 @@ fn main() {
         if args.len() < 3{
             panic!("合并操作还需要指定片段存放目录；m3u8-downloader --combine /clip_path");
         }
-        combine::combine_clip(&args[2]).expect("combine failed");
+        combine::combine_clip(&args[2]);
         return;
     }
     
