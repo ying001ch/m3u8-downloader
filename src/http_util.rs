@@ -1,38 +1,34 @@
-use reqwest::{IntoUrl, blocking::{Response, get}, header::HeaderMap};
-use std::{collections::HashMap, io::{Read, Write}};
+use aes::cipher::generic_array::sequence::Split;
+use reqwest::{IntoUrl, blocking::{Client, Response, get}, header::HeaderMap};
+use std::{collections::HashMap, env, io::{Read, Write}};
 use bytes::Bytes;
 use reqwest::Proxy;
+use crate::str_util;
 
+
+pub struct ReqParam{
+    proxys: String,
+    headers: Vec<(String,String)>,
+}
 static mut proxys:String = String::new();
-pub fn main() {
-    let body = reqwest::blocking
-            ::get("https://address");
-    let ar = [0];
-    let resp = match body {
-        Ok(res) => res,
-        Err(err) => {
-            println!("{}", err);
-            panic!("err 發生");
-            return;
-        }
+static mut req_param :ReqParam = 
+    ReqParam{proxys: String::new(),
+     headers: vec![],
     };
-    write_file(resp);
-    println!("读取完毕！");
+pub fn main() {
+    let args:Vec<String> = env::args().collect();
+    set_header(&args);
+
+    query_bytes("http://localhost:8080/hs");
+    println!("end..");
 }
 pub fn query_bytes(url: &str) ->std::result::Result<Bytes, reqwest::Error> {
-    let client;
-    if get_proxy().len()>0{
-        let proxy = reqwest::Proxy::all(get_proxy())
-                .expect("socks proxy should be there");
-        client = reqwest::blocking::Client::builder().proxy(proxy).build()
-        .expect("should be able to build reqwest client");
-    }else{
-        client = reqwest::blocking::Client::builder()
-                .build()
-                .expect("should be able to build reqwest client");
+    let mut req_builder = get_client().get(url);
+    let head = get_headers();
+    for h in head {
+        req_builder = req_builder.header(&h.0, &h.1);
     }
-
-    let body = client.get(url).send();
+    let body = req_builder.send();
     match body {
         Ok(res) => Ok(res.bytes().unwrap()),
         Err(err) => {
@@ -42,16 +38,23 @@ pub fn query_bytes(url: &str) ->std::result::Result<Bytes, reqwest::Error> {
     }
 }
 pub fn query_text(url: &str) ->String {
-    let body = reqwest::blocking
-            ::get(url);
-    let ar = [0];
-    match body {
-        Ok(res) => res.text().expect("query bytes failed"),
+    let b = query_bytes(url);
+    match b {
+        Ok(res) => String::from_utf8_lossy(&res).to_string(),
         Err(err) => {
             println!("{}", err);
             panic!("query text failed!");
         }
     }
+}
+fn get_client()-> Client{
+    let mut builder = reqwest::blocking::Client::builder();
+    if get_proxy().len()>0 {
+        let proxy = reqwest::Proxy::all(get_proxy())
+                .expect("socks proxy should be there");
+        builder = builder.proxy(proxy);
+    }
+    builder.build().expect("")
 }
 
 fn write_file(mut reader: Response) {
@@ -75,12 +78,33 @@ fn write_file(mut reader: Response) {
 }
 fn get_proxy()->&'static str{
     unsafe {
-        &proxys
+        &req_param.proxys
     }
 }
 pub fn set_proxy(proxy_s: String){
     println!("proxy={}", &proxy_s);
     unsafe {
-        proxys = proxy_s;
+        // proxys = proxy_s;
+        req_param.proxys = proxy_s;
+    }
+}
+pub fn set_header(args: &[String]){
+    let headers:Vec<(String,String)> = args.iter()
+            .filter(|&e|e.starts_with("--H=")&&e.contains(":"))
+            .map(|e|e.replace("--H=",""))
+            .map(|e|{
+                let idx = str_util::index_of(':', &e) as usize;
+                let k = &e[0..idx];
+                let v = &e[idx..e.len()];
+                (k.trim().to_string(),v.trim().to_string())
+            }).collect();
+    println!("headers: {:?}",headers);
+    unsafe {
+        req_param.headers=headers;        
+    }
+}
+fn get_headers() -> &'static Vec<(String, String)>{
+    unsafe {
+        &req_param.headers      
     }
 }

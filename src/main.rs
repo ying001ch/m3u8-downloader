@@ -5,6 +5,7 @@ mod http_util;
 mod M3u8Item;
 mod aes_demo;
 mod combine;
+mod str_util;
 
 fn main() {
     let args:Vec<String> = std::env::args().collect();

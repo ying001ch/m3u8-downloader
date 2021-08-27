@@ -1,7 +1,6 @@
 use std::io::{Read, Write};
 
 use aes::Aes128;
-use aes::cipher::generic_array::{ArrayLength, GenericArray};
 use block_modes::block_padding::Pkcs7;
 use block_modes::{BlockMode, Cbc};
 

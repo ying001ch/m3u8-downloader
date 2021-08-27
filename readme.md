@@ -57,7 +57,13 @@ FFMPEG_PATH="/ffmpeg/bin"
 --proxy=http://127.0.0.1:1081
 ```
 
+- 设置Http Header
+
+```rust
+// 任意位置添加参数
+--H="refer:https://yourAddress" --H="origin: http://yourOrigin"
+```
+
 # 3. 下载失败
 
 有时会下载失败，不知道为什么。可以原地重新下载，已经下载好的文件会跳过，不会重复下载
-

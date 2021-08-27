@@ -37,7 +37,7 @@ impl M3u8Entity {
             }
         }
         if mm.clip_urls.len()==0{
-            panic!("M3U8 元信息解析错误，为解析到视频片段信息。content: \n{}", content);
+            panic!("M3U8 元信息解析错误，未解析到视频片段信息。content: \n{}", &content[0..200]);
         }
         if mm.key_url.len()==0 {
             println!("未发现密钥信息, 将不进行解密！");
