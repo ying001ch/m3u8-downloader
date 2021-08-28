@@ -74,7 +74,7 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
     let couter = Arc::new(Mutex::new(0));
 
     let mut vcs = vec![];
-    for i in 0..8 {
+    for i in 0..get_thread_num() {
         let clone_counter = Arc::clone(&couter);
         let clone_it = Arc::clone(&it);
         let clone_entity = Arc::clone(&entity_it);
@@ -111,22 +111,21 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                 let down_url = prefix.to_string() + clip.as_str();
                 println!("--> {}", down_url);
 
-                let result = http_util::query_bytes(&down_url);
+                let result = http_util::query_bytes(&down_url,i as i32);
                 if result.is_err() {
                     println!("{}", result.as_ref().unwrap_err());
                     continue;
                 }
-                let mut byte_vec = vec![];
+                let mut byte_vec = Vec::with_capacity(result.as_ref().unwrap().len());
                 for b in result.unwrap() {
                     byte_vec.push(b);
                 }
 
-                let result;
-                if dd.need_decode() {
-                    result = aes_demo::decrypt(&byte_vec, key, iv);
+                let result = (if dd.need_decode() {
+                    aes_demo::decrypt(&byte_vec, key, iv)
                 } else {
-                    result = byte_vec;
-                }
+                    byte_vec
+                });
 
                 write_file(&result, &dd, make_name(co));
                 println!("下载成功！\n\n");
@@ -138,7 +137,15 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
         ha.join().expect("线程被中断");
     }
 }
-
+fn get_thread_num()->u8{
+    let num = std::env::args().filter(|e|e.contains("--worker="))
+        .map(|e|e.replace("--worker=",""))
+        .map(|e|->u8 {e.parse().expect("")})
+        .find(|e|true)
+        .unwrap_or(4);
+    println!("worker num={}", num);
+    num
+}
 fn make_name(num: i32) -> String {
     if num < 1000 {
         let s = format!("{}", num);

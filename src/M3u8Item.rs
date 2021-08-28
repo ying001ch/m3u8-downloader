@@ -54,7 +54,7 @@ impl M3u8Entity {
             self.key_url = self.url_prefix.as_ref().unwrap().to_string() + &self.key_url;
         }
         println!("req_key key_url={}", &self.key_url);
-        let raw_bytes = http_util::query_bytes(&self.key_url).unwrap();
+        let raw_bytes = http_util::query_bytes(&self.key_url,0).unwrap();
         let mut key_bytes = [0u8;16];
         let len = raw_bytes.len();
         if len != 16 {

@@ -2,6 +2,8 @@ use reqwest::{blocking::{Client, Response}};
 use std::{env, io::{Read, Write}};
 use bytes::Bytes;
 use crate::str_util;
+use std::thread::Thread;
+use std::collections::HashMap;
 
 
 pub struct ReqParam{
@@ -16,16 +18,17 @@ pub fn main() {
     let args:Vec<String> = env::args().collect();
     set_header(&args);
 
-    query_bytes("http://localhost:8080/hs");
+    query_bytes("http://localhost:8080/hs",0);
     println!("end..");
 }
-pub fn query_bytes(url: &str) ->std::result::Result<Bytes, reqwest::Error> {
-    let mut req_builder = get_client().get(url);
+pub fn query_bytes(url: &str, idx:i32) ->std::result::Result<Bytes, reqwest::Error> {
+    let client = get_client(idx);
+    let mut req_builder = client.get(url);
     let head = get_headers();
     for h in head {
         req_builder = req_builder.header(&h.0, &h.1);
     }
-    let body = req_builder.send();
+    let body = client.execute(req_builder.build().unwrap());
     match body {
         Ok(res) => Ok(res.bytes().unwrap()),
         Err(err) => {
@@ -35,7 +38,7 @@ pub fn query_bytes(url: &str) ->std::result::Result<Bytes, reqwest::Error> {
     }
 }
 pub fn query_text(url: &str) ->String {
-    let b = query_bytes(url);
+    let b = query_bytes(url,0);
     match b {
         Ok(res) => String::from_utf8_lossy(&res).to_string(),
         Err(err) => {
@@ -44,14 +47,31 @@ pub fn query_text(url: &str) ->String {
         }
     }
 }
-fn get_client()-> Client{
+fn get_client(idx: i32)-> &'static Client{
+    static mut map:Option<HashMap<i32, Client>> = None;
+    let mut m;
+    unsafe{
+        if let None = map{
+            map = Some(HashMap::new());
+        }
+        m = map.as_mut().unwrap();
+        // if m.contains_key(&idx) {
+        //     return m.get(&idx).as_ref().unwrap();
+        // }
+    }
+
     let mut builder = reqwest::blocking::Client::builder();
     if get_proxy().len()>0 {
         let proxy = reqwest::Proxy::all(get_proxy())
                 .expect("socks proxy should be there");
         builder = builder.proxy(proxy);
     }
-    builder.build().expect("")
+    let cli = builder.build().expect("build clent failed.");
+    unsafe {
+        m.insert(idx, cli);
+        println!("new http client for thread: {}", idx);
+        m.get(&idx).as_ref().unwrap()
+    }
 }
 
 fn write_file(mut reader: Response) {
