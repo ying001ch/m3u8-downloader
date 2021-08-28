@@ -9,6 +9,8 @@ use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
+use std::thread::sleep;
+use std::time::Duration;
 
 pub fn run() {
     println!("Hello this is M3u8-Downloader by rust");
@@ -79,6 +81,7 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
         let clone_it = Arc::clone(&it);
         let clone_entity = Arc::clone(&entity_it);
         let handler = thread::spawn(move || {
+            sleep(Duration::from_millis(20u64+ (i as u64 *50u64)));
             while true {
                 let dd = clone_entity.as_ref();
                 let key = &dd.key;

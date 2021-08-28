@@ -64,6 +64,12 @@ FFMPEG_PATH="/ffmpeg/bin"
 --H="refer:https://yourAddress" --H="origin: http://yourOrigin"
 ```
 
+- 设置下载任务的线程数
+
+```rust
+--worker=4  // 手动指定线程数，默认为4
+```
+
 # 3. 下载失败
 
 有时会下载失败，不知道为什么。可以原地重新下载，已经下载好的文件会跳过，不会重复下载

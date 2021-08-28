@@ -47,18 +47,18 @@ pub fn query_text(url: &str) ->String {
         }
     }
 }
-fn get_client(idx: i32)-> &'static Client{
-    static mut map:Option<HashMap<i32, Client>> = None;
-    let mut m;
-    unsafe{
-        if let None = map{
-            map = Some(HashMap::new());
-        }
-        m = map.as_mut().unwrap();
-        // if m.contains_key(&idx) {
-        //     return m.get(&idx).as_ref().unwrap();
-        // }
-    }
+fn get_client(idx: i32)-> Client{
+    // static mut map:Option<HashMap<i32, Client>> = None;
+    // let mut m;
+    // unsafe{
+    //     if let None = map{
+    //         map = Some(HashMap::new());
+    //     }
+    //     m = map.as_mut().unwrap();
+    //     // if m.contains_key(&idx) {
+    //     //     return m.get(&idx).as_ref().unwrap();
+    //     // }
+    // }
 
     let mut builder = reqwest::blocking::Client::builder();
     if get_proxy().len()>0 {
@@ -67,11 +67,12 @@ fn get_client(idx: i32)-> &'static Client{
         builder = builder.proxy(proxy);
     }
     let cli = builder.build().expect("build clent failed.");
-    unsafe {
-        m.insert(idx, cli);
-        println!("new http client for thread: {}", idx);
-        m.get(&idx).as_ref().unwrap()
-    }
+    cli
+    // unsafe {
+    //     m.insert(idx, cli);
+    //     println!("new http client for thread: {}", idx);
+    //     m.get(&idx).as_ref().unwrap()
+    // }
 }
 
 fn write_file(mut reader: Response) {
