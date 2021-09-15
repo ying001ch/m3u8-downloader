@@ -30,9 +30,8 @@ pub fn query_bytes(url: &str, idx:i32) ->std::result::Result<Bytes, reqwest::Err
     }
     let body = client.execute(req_builder.build().unwrap());
     match body {
-        Ok(res) => Ok(res.bytes().unwrap()),
+        Ok(res) => res.bytes(),
         Err(err) => {
-            println!("{}", err);
             Err(err)
         }
     }
@@ -113,7 +112,7 @@ pub fn set_header(args: &[String]){
             .map(|e|{
                 let idx = str_util::index_of(':', &e) as usize;
                 let k = &e[0..idx];
-                let v = &e[idx..e.len()];
+                let v = &e[idx+1..e.len()];
                 (k.trim().to_string(),v.trim().to_string())
             }).collect();
     println!("headers: {:?}",headers);

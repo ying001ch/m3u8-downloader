@@ -1,5 +1,3 @@
-use std::io::{Read, Write};
-
 use aes::Aes128;
 use block_modes::block_padding::Pkcs7;
 use block_modes::{BlockMode, Cbc};
@@ -15,9 +13,10 @@ fn encrypt(content: &[u8], key:&[u8], iv:&[u8]) -> Vec<u8>{
     let result = cipher.encrypt_vec(content);
     result
 }
-pub fn decrypt(encry_content: &[u8], key:&[u8], iv:&[u8]) -> Vec<u8>{
+pub fn decrypt(encry_content: &[u8], key:&[u8], iv:&[u8]) -> Result<Vec<u8>, String>{
     let cipher = Aes128Cbc::new_from_slices(&key, &iv).unwrap();
-    let decrypted_ciphertext = cipher.decrypt_vec(encry_content)
-            .unwrap();
-    decrypted_ciphertext
+    match cipher.decrypt_vec(encry_content){
+        Ok(t)=>Ok(t),
+        Err(e)=>Err(e.to_string())
+    }
 }

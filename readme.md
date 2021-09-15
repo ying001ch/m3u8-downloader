@@ -64,6 +64,13 @@ FFMPEG_PATH="/ffmpeg/bin"
 --H="refer:https://yourAddress" --H="origin: http://yourOrigin"
 ```
 
+- 设置key
+
+```shell
+# 任意位置添加参数，字符串形式
+--key="D2BAfb82c3GAf4EA"
+```
+
 - 设置下载任务的线程数
 
 ```rust

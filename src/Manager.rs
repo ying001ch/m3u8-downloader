@@ -70,42 +70,47 @@ fn process(entity: &mut M3u8Item::M3u8Entity, save_path: &str, m3u8_url: &str) {
 fn download_decode(entity: M3u8Item::M3u8Entity) {
     println!("savePath={}", entity.save_path.as_ref().unwrap());
 
-    let clip_urls = entity.clip_urls.clone();
-    let it = Arc::new(Mutex::new(clip_urls));
     let entity_it = Arc::new(entity);
-    let couter = Arc::new(Mutex::new(0));
+
+    let mut pkg = vec![];
+    let len = entity_it.clip_urls.len();
+    for i in 0..len {
+        pkg.push(((len - i) as i32, entity_it.clip_urls[len-1-i].clone(),0));
+    }
+    let pkg = Arc::new(Mutex::new(pkg));
 
     let mut vcs = vec![];
     for i in 0..get_thread_num() {
-        let clone_counter = Arc::clone(&couter);
-        let clone_it = Arc::clone(&it);
         let clone_entity = Arc::clone(&entity_it);
+        let clone_pkg = Arc::clone(&pkg);
         let handler = thread::spawn(move || {
             sleep(Duration::from_millis(20u64+ (i as u64 *50u64)));
-            while true {
+            loop {
                 let dd = clone_entity.as_ref();
                 let key = &dd.key;
                 let iv = &dd.iv;
                 let prefix = dd.url_prefix.as_ref().unwrap();
 
-                let clip;
-                let co;
+                let mut clip;
+                let mut clip_index;
+                let mut retry_num ;
                 {
-                    let mut counter = clone_counter.lock().unwrap();
-
-                    let vec = clone_it.lock().unwrap();
-                    if *counter >= vec.len() {
-                        break;
+                    let mut pkd_ref = clone_pkg.lock().unwrap();
+                    let (clip_index_, clip_, retry_num_) = match pkd_ref.pop(){
+                        Some(e)=>e,
+                        None=>break
+                    };
+                    clip = clip_;
+                    clip_index = clip_index_;
+                    retry_num = retry_num_;
+                    if retry_num > 0{
+                        println!("错误片段重新下载。retry_num={}", retry_num);
                     }
-                    let aa = vec[*counter].clone();
-                    clip = aa;
-                    *counter += 1;
-                    co = (*counter) as i32;
                 }
                 let file_ex = std::fs::File::open(format!(
                     "{}/{}.ts",
                     dd.save_path.as_ref().unwrap(),
-                    make_name(co)
+                    make_name(clip_index)
                 ));
                 if file_ex.is_ok() {
                     continue;
@@ -116,7 +121,8 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
 
                 let result = http_util::query_bytes(&down_url,i as i32);
                 if result.is_err() {
-                    println!("{}", result.as_ref().unwrap_err());
+                    put_retry(&mut retry_num, &clone_pkg, clip_index, &clip);
+                    println!("下载出错：{}", result.unwrap_err());
                     continue;
                 }
                 let mut byte_vec = Vec::with_capacity(result.as_ref().unwrap().len());
@@ -124,13 +130,20 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                     byte_vec.push(b);
                 }
 
-                let result = (if dd.need_decode() {
-                    aes_demo::decrypt(&byte_vec, key, iv)
+                let result = if dd.need_decode() {
+                    let res = aes_demo::decrypt(&byte_vec, key, iv);
+                    if let Ok(v) = res{
+                        v
+                    }else{
+                        put_retry(&mut retry_num, &clone_pkg, clip_index, &clip);
+                        println!("下载出错：{}", res.unwrap_err());
+                        continue;
+                    }
                 } else {
                     byte_vec
-                });
+                };
 
-                write_file(&result, &dd, make_name(co));
+                write_file(&result, &dd, make_name(clip_index));
                 println!("下载成功！\n\n");
             }
         });
@@ -138,6 +151,16 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
     }
     for ha in vcs {
         ha.join().expect("线程被中断");
+    }
+}
+
+fn put_retry(retry_num: &mut i32, clone_pkg: &Arc<Mutex<Vec<(i32, String, i32)>>>, 
+        clip_index: i32, clip: &String) {
+    if *retry_num < 3{
+        let mut pkd_ref = clone_pkg.lock().unwrap();
+        let len = pkd_ref.len();
+        *retry_num += 1;
+        pkd_ref.insert(len/2, (clip_index, clip.to_string(), *retry_num));
     }
 }
 fn get_thread_num()->u8{

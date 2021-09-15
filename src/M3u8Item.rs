@@ -1,3 +1,5 @@
+use std::env;
+
 use super::http_util;
 
 pub struct M3u8Entity{
@@ -47,6 +49,22 @@ impl M3u8Entity {
     }
     pub fn req_key(&mut self) {
         if !self.need_decode(){
+            return;
+        }
+
+        let pr = env::args()
+            .filter(|e| e.contains("--key"))
+            .map(|e| e.replace("--key=", ""))
+            .find(|e| true);
+        if pr.is_some() {
+            let bar = pr.unwrap().into_bytes();
+            let mut k = [0u8;16];
+            for i in 0..k.len(){
+                k[i] = bar[i];
+            }
+
+            self.key = k;
+            println!("key_bytes={:?}", self.key);
             return;
         }
 
@@ -125,8 +143,12 @@ fn from_hex(idx: &str) -> u8 {
 }
 
 fn parse_hex_char(ac: char) -> u8 {
+    let mut ac = ac;
+    if ac >= 'A' && ac <= 'C'{
+        ac = (ac as u8 - 'A' as u8 + 'a' as u8) as char;
+    }
     if !(ac >= 'a' && ac <= 'f') && !(ac >= '0' && ac <= '9'){
-        panic!("解析数字错误");
+        panic!("解析数字错误:{}", ac);
     }
     let nu = ac as u8;
     if ac >= '0' && ac <= '9'{
