@@ -8,6 +8,9 @@ use std::env;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::sync::mpsc;
+use std::sync::mpsc::Receiver;
+use std::sync::mpsc::Sender;
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
@@ -79,17 +82,62 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
     }
     let pkg = Arc::new(Mutex::new(pkg));
 
+    let (tx, rx) = mpsc::channel::<(Vec<u8>,i32)>();
+    
+    let mut vcs0 = vec![];
+    // 创建解密和 写文件线程
+    let count_stop = Arc::new(Mutex::new(false));
+    let rx_holder = Arc::new(Mutex::new(rx));
+    for i in 0..2 {
+        let holder = Arc::clone(&rx_holder);
+        let clone_entity = Arc::clone(&entity_it);
+        let c_s = Arc::clone(&count_stop);
+        let handler = thread::spawn(move||{
+            let dd = clone_entity.as_ref();
+            let key = &dd.key;
+            let iv = &dd.iv;
+            
+            loop{
+                let (byte_vec, clip_index) =  {
+                    holder.lock().unwrap().recv().unwrap()
+                };
+                if clip_index<0 {
+                    println!("退出线程====");
+                    break;
+                }
+
+                println!("vec size = {}", byte_vec.len());
+
+                 let result = if dd.need_decode() {
+                    let res = aes_demo::decrypt(&byte_vec, key, iv);
+                    if let Ok(v) = res{
+                        v
+                    }else{
+                        println!("Decode ERROR 解密过程出错：{}", res.unwrap_err());
+                        continue;
+                    }
+                } else {
+                    byte_vec
+                };
+
+                write_file(&result, &dd, make_name(clip_index));
+                println!("{}--写入成功！clip_index={}\n",i, clip_index);
+            }
+        });
+        vcs0.push(handler);
+    }
+
+
     let mut vcs = vec![];
     for i in 0..get_thread_num() {
         let clone_entity = Arc::clone(&entity_it);
         let clone_pkg = Arc::clone(&pkg);
+        let txc = tx.clone();
         let handler = thread::spawn(move || {
             sleep(Duration::from_millis(20u64+ (i as u64 *50u64)));
+            let dd = clone_entity.as_ref();
+            let prefix = dd.url_prefix.as_ref().unwrap();
             loop {
-                let dd = clone_entity.as_ref();
-                let key = &dd.key;
-                let iv = &dd.iv;
-                let prefix = dd.url_prefix.as_ref().unwrap();
 
                 let mut clip;
                 let mut clip_index;
@@ -130,21 +178,9 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                     byte_vec.push(b);
                 }
 
-                let result = if dd.need_decode() {
-                    let res = aes_demo::decrypt(&byte_vec, key, iv);
-                    if let Ok(v) = res{
-                        v
-                    }else{
-                        put_retry(&mut retry_num, &clone_pkg, clip_index, &clip);
-                        println!("下载出错：{}", res.unwrap_err());
-                        continue;
-                    }
-                } else {
-                    byte_vec
-                };
-
-                write_file(&result, &dd, make_name(clip_index));
-                println!("下载成功！\n\n");
+                txc.send((byte_vec,clip_index)).unwrap();
+                
+                println!("{}--下载成功！clip_index={}\n",i, clip_index)
             }
         });
         vcs.push(handler);
@@ -152,6 +188,14 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
     for ha in vcs {
         ha.join().expect("线程被中断");
     }
+
+    for ha in 0..vcs0.len() {
+        tx.send((vec![], -1)).unwrap();
+    }
+    for ha in vcs0 {
+        ha.join().expect("线程被中断");
+    }
+    
 }
 
 fn put_retry(retry_num: &mut i32, clone_pkg: &Arc<Mutex<Vec<(i32, String, i32)>>>, 
