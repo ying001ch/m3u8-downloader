@@ -1,6 +1,6 @@
 use std::{env, io::Write, process::Command};
 
-pub fn combine_clip(save_path: &str) {
+pub fn combine_clip(clip_dir: &str) {
     // 1. 检测环境变量
     let ffmpeg_dir = std::env::var("FFMPEG_PATH")
     .expect("没有配置 FFMPEG_PATH 环境变量");
@@ -9,10 +9,10 @@ pub fn combine_clip(save_path: &str) {
 
     // 2. 生成合并文件
     let com_file_name={
-        let com_file_name = format!("{}\\combine.txt",save_path);
+        let com_file_name = format!("{}\\combine.txt",clip_dir);
         let mut com_txt = std::fs::File::create(&com_file_name)
                 .expect("创建合并文件失败");
-        for entry in std::fs::read_dir(save_path).expect("msg") {
+        for entry in std::fs::read_dir(clip_dir).expect("msg") {
             let file_name = entry.unwrap().file_name().into_string()
                     .expect("获取文件名时错误");
             if !file_name.contains(".ts") {
@@ -41,6 +41,10 @@ pub fn combine_clip(save_path: &str) {
     
     let output_str = String::from_utf8_lossy(&output.stderr);
     println!("output_str={}", output_str);
+    println!("开始删除临时文件:");
+    
+    std::fs::remove_dir_all(clip_dir).expect("删除临时文件失败！");
+    println!("删除临时文件完成！");
 }
 
 fn get_output_name() ->String {

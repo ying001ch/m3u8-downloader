@@ -19,8 +19,8 @@ pub fn run() {
     println!("Hello this is M3u8-Downloader by rust");
 
     let args: Vec<String> = env::args().collect();
-    let save_path = args[1].as_str();
-    let m3u8_url = args[2].as_str();
+    // let save_path = args[1].as_str();
+    let m3u8_url = args[1].as_str();
 
     let pr = args
         .iter()
@@ -33,29 +33,29 @@ pub fn run() {
     http_util::set_header(&args);
 
     let content;
-    if args.len() >= 4 && args[3] == "--file" {
+    if args.len() >= 4 && args[2] == "--file" {
         //1. 解析m3u8文件
         if args.len() < 5 {
             panic!("--file 需要指定m3u8文件路径");
         }
-        content = std::fs::read_to_string(&args[4]).unwrap();
+        content = std::fs::read_to_string(&args[3]).unwrap();
     } else {
         //1. 解析m3u8文件
         content = http_util::query_text(m3u8_url);
     }
 
     let mut entity = M3u8Item::M3u8Entity::from(content);
-    process(&mut entity, save_path, m3u8_url);
+    process(&mut entity, m3u8_url);
 
+    let tp = entity.temp_path.clone();
     download_decode(entity);
 
     println!("下载完毕！");
 
-    combine::combine_clip(save_path);
+    combine::combine_clip(&tp);
 }
 
-fn process(entity: &mut M3u8Item::M3u8Entity, save_path: &str, m3u8_url: &str) {
-    entity.save_path = Some(save_path.to_string());
+fn process(entity: &mut M3u8Item::M3u8Entity, m3u8_url: &str) {
 
     let mut idx1 = str_util::index_of('?', m3u8_url);
     if idx1 == -1 {
@@ -71,7 +71,7 @@ fn process(entity: &mut M3u8Item::M3u8Entity, save_path: &str, m3u8_url: &str) {
     entity.req_key();
 }
 fn download_decode(entity: M3u8Item::M3u8Entity) {
-    println!("savePath={}", entity.save_path.as_ref().unwrap());
+    // println!("savePath={}", entity.save_path.as_ref().unwrap());
 
     let entity_it = Arc::new(entity);
 
@@ -127,7 +127,7 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
         vcs0.push(handler);
     }
 
-
+    // 下载线程
     let mut vcs = vec![];
     for i in 0..get_thread_num() {
         let clone_entity = Arc::clone(&entity_it);
@@ -155,12 +155,11 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                         println!("错误片段重新下载。retry_num={}", retry_num);
                     }
                 }
-                let file_ex = std::fs::File::open(format!(
+                if file_exists(format!(
                     "{}/{}.ts",
-                    dd.save_path.as_ref().unwrap(),
+                    dd.temp_path,
                     make_name(clip_index)
-                ));
-                if file_ex.is_ok() {
+                ).as_ref()) {
                     continue;
                 }
 
@@ -198,6 +197,11 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
     
 }
 
+fn file_exists(file_path: &str)-> bool{
+    let file_ex = std::fs::File::open(file_path);
+    file_ex.is_ok()
+}
+
 fn put_retry(retry_num: &mut i32, clone_pkg: &Arc<Mutex<Vec<(i32, String, i32)>>>, 
         clip_index: i32, clip: &String) {
     if *retry_num < 3{
@@ -227,9 +231,10 @@ fn make_name(num: i32) -> String {
 }
 
 fn write_file(result: &[u8], entity: &M3u8Item::M3u8Entity, file_name: String) {
-    let save_path = entity.save_path.as_ref().unwrap();
+    let save_path = entity.temp_path.clone();
+
     let mut file =
         std::fs::File::create(format!("{}/{}.ts", save_path, file_name)).expect("open file failed");
     let usize = file.write(result).expect("写入文件失败");
-    println!("写入成功 counter:{}, size: {}", file_name, usize);
+    // println!("写入成功 counter:{}, size: {}", file_name, usize);
 }
