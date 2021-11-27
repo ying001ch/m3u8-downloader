@@ -21,7 +21,7 @@ pub fn main() {
     query_bytes("http://localhost:8080/hs",0);
     println!("end..");
 }
-pub fn query_bytes(url: &str, idx:i32) ->std::result::Result<Bytes, reqwest::Error> {
+pub fn query_bytes(url: &str, idx:i32) ->std::result::Result<Box<Bytes>, reqwest::Error> {
     let client = get_client(idx);
     let mut req_builder = client.get(url);
     let head = get_headers();
@@ -30,7 +30,7 @@ pub fn query_bytes(url: &str, idx:i32) ->std::result::Result<Bytes, reqwest::Err
     }
     let body = client.execute(req_builder.build().unwrap());
     match body {
-        Ok(res) => res.bytes(),
+        Ok(res) => res.bytes().map(|b|Box::new(b)),
         Err(err) => {
             Err(err)
         }

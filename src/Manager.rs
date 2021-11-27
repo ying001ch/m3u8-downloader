@@ -1,3 +1,5 @@
+use bytes::Bytes;
+
 use crate::aes_demo;
 use crate::combine;
 use crate::http_util;
@@ -22,14 +24,15 @@ pub fn run() {
     // let save_path = args[1].as_str();
     let m3u8_url = args[1].as_str();
 
-    let pr = args
+    args
         .iter()
         .filter(|&e| e.contains("--proxy"))
         .map(|e| e.replace("--proxy=", ""))
-        .find(|e| true);
-    if pr.is_some() {
-        http_util::set_proxy(pr.unwrap());
-    }
+        .next()
+        .map(|f|{
+            http_util::set_proxy(f);
+        });
+    
     http_util::set_header(&args);
 
     let content;
@@ -82,16 +85,14 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
     }
     let pkg = Arc::new(Mutex::new(pkg));
 
-    let (tx, rx) = mpsc::channel::<(Vec<u8>,i32)>();
+    let (tx, rx) = mpsc::channel::<(Box<Bytes>,i32)>();
     
-    let mut vcs0 = vec![];
+    let mut write_worker = vec![];
     // 创建解密和 写文件线程
-    let count_stop = Arc::new(Mutex::new(false));
     let rx_holder = Arc::new(Mutex::new(rx));
     for i in 0..2 {
         let holder = Arc::clone(&rx_holder);
         let clone_entity = Arc::clone(&entity_it);
-        let c_s = Arc::clone(&count_stop);
         let handler = thread::spawn(move||{
             let dd = clone_entity.as_ref();
             let key = &dd.key;
@@ -108,39 +109,41 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
 
                 println!("vec size = {}", byte_vec.len());
 
-                 let result = if dd.need_decode() {
+                let temp;
+                let result: &[u8] = if dd.need_decode() {
                     let res = aes_demo::decrypt(&byte_vec, key, iv);
                     if let Ok(v) = res{
-                        v
+                        temp = v;
+                        &temp
                     }else{
                         println!("Decode ERROR 解密过程出错：{}", res.unwrap_err());
                         continue;
                     }
                 } else {
-                    byte_vec
+                    byte_vec.as_ref()
                 };
 
-                write_file(&result, &dd, make_name(clip_index));
+                write_file(result, &dd, make_name(clip_index));
                 println!("{}--写入成功！clip_index={}\n",i, clip_index);
             }
         });
-        vcs0.push(handler);
+        write_worker.push(handler);
     }
 
     // 下载线程
-    let mut vcs = vec![];
+    let mut download_worker = vec![];
     for i in 0..get_thread_num() {
         let clone_entity = Arc::clone(&entity_it);
         let clone_pkg = Arc::clone(&pkg);
         let txc = tx.clone();
         let handler = thread::spawn(move || {
-            sleep(Duration::from_millis(20u64+ (i as u64 *50u64)));
+            sleep(Duration::from_millis(i as u64 *300u64));
             let dd = clone_entity.as_ref();
             let prefix = dd.url_prefix.as_ref().unwrap();
             loop {
 
-                let mut clip;
-                let mut clip_index;
+                let clip;
+                let clip_index;
                 let mut retry_num ;
                 {
                     let mut pkd_ref = clone_pkg.lock().unwrap();
@@ -172,26 +175,21 @@ fn download_decode(entity: M3u8Item::M3u8Entity) {
                     println!("下载出错：{}", result.unwrap_err());
                     continue;
                 }
-                let mut byte_vec = Vec::with_capacity(result.as_ref().unwrap().len());
-                for b in result.unwrap() {
-                    byte_vec.push(b);
-                }
-
-                txc.send((byte_vec,clip_index)).unwrap();
+                txc.send((result.unwrap(), clip_index)).unwrap();
                 
                 println!("{}--下载成功！clip_index={}\n",i, clip_index)
             }
         });
-        vcs.push(handler);
+        download_worker.push(handler);
     }
-    for ha in vcs {
+    for ha in download_worker {
         ha.join().expect("线程被中断");
     }
 
-    for ha in 0..vcs0.len() {
-        tx.send((vec![], -1)).unwrap();
+    for _ha in 0..write_worker.len() {
+        tx.send((Box::new(Bytes::new()), -1)).unwrap();
     }
-    for ha in vcs0 {
+    for ha in write_worker {
         ha.join().expect("线程被中断");
     }
     

@@ -51,9 +51,8 @@ impl M3u8Entity {
         println!("clip num: {}", entity.clip_urls.len());
         // temp_path
         let tpop = get_temp_path();
-        match tpop{
-            Some(t)=> entity.temp_path = t,
-            None => ()
+        if let Some(t) = tpop{
+            entity.temp_path = t;
         }
 
         if !dir_exists(&entity.temp_path) {
@@ -97,7 +96,7 @@ impl M3u8Entity {
             panic!("reqKey failed");
         }
         let mut idx=0;
-        for b in raw_bytes {
+        for b in *raw_bytes {
             key_bytes[idx] = b;
             idx += 1;
         }
