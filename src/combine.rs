@@ -4,23 +4,30 @@ pub fn combine_clip(clip_dir: &str) {
     // 1. 检测环境变量
     let ffmpeg_dir = std::env::var("FFMPEG_PATH")
     .expect("没有配置 FFMPEG_PATH 环境变量");
-    let ffmpeg = format!("{}\\ffmpeg.exe",ffmpeg_dir);
+    let ffmpeg = format!("{}/ffmpeg",ffmpeg_dir);
     println!("ffmpeg: {}", ffmpeg);
 
     // 2. 生成合并文件
     let com_file_name={
-        let com_file_name = format!("{}\\combine.txt",clip_dir);
+        let com_file_name = format!("{}/combine.txt",clip_dir);
         let mut com_txt = std::fs::File::create(&com_file_name)
                 .expect("创建合并文件失败");
-        for entry in std::fs::read_dir(clip_dir).expect("msg") {
+        let mut file_list = vec![];
+        for entry in  std::fs::read_dir(clip_dir).expect("读取文件夹失败"){
             let file_name = entry.unwrap().file_name().into_string()
                     .expect("获取文件名时错误");
             if !file_name.contains(".ts") {
                 continue;
             }
             let line = format!("file '{}'\n", file_name);
-            com_txt.write_all(line.as_bytes())
-                    .expect(format!("生成合并文件时出错，file:{}", file_name).as_str());
+            file_list.push(line);
+        }
+        file_list.sort_by(|x,y|{
+            x.cmp(y)
+        });
+        for f in file_list {
+            com_txt.write_all(f.as_bytes())
+                    .expect(format!("生成合并文件时出错，file:{}", com_file_name).as_str());
         }
         com_txt.flush().unwrap();
         com_file_name
@@ -31,9 +38,8 @@ pub fn combine_clip(clip_dir: &str) {
     let output_name = get_output_name();
     // 3.调用合并
     let output = 
-        Command::new("cmd")
-                .arg("/c")
-                .arg(ffmpeg).arg("-f").arg("concat").arg("-i")
+        Command::new(ffmpeg)
+                .arg("-f").arg("concat").arg("-i")
                 .arg(com_file_name.as_str()).arg("-c").arg("copy")
                 .arg(output_name)
                 .output()
