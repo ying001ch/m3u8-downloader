@@ -26,40 +26,47 @@ FFMPEG_PATH="/ffmpeg/bin"
 
 - 通过m3u8下载视频且合并片段
 
-```rust
-//  video_clip_dir: 视频片段存放的位置  --output= 视频片段合并后的文件位置
-./m3u8-downloader ./video_clip_dir http://m3u8.address  --output=download_name.mp4
+```shell
+//   --output= 视频片段合并后的文件位置
+./m3u8-downloader http://m3u8.address  --output=download_name.mp4
 ```
 
 > 合并后的文件会放在在当前目录，名称可以不指定默认为 output.mp4
 
 - 在某些情况下 通过地址无法直接下载m3u8文件，可以手动抓取m3u8内容保存成文件再下载
 
-```rust
-./m3u8-downloader ./download_path http://m3u8.address --file ./m3u8_file_path
+```shell
+./m3u8-downloader http://m3u8.address --file ./m3u8_file_path
 ```
 
 > 由于m3u8内容里面往往只有视频路径最后一截，所以即使有了m3u8文件还是要指定 m3u8地址
 
 - 合并已存在的视频片段
 
-```rust
+```shell
 // --output可省略 使用默认名称
 ./m3u8-downloader --combine ./video_clip_dir --output=download_name.mp4
 ```
 
 > 会根据视频名称进行排序，只会添加 名称里包含 `.ts` 的文件
 
+- 指定临时目录 以存放下载的视频片段，下载合并完毕之后会删除。不指定默认使用时间戳
+
+```shell
+// 任意位置添加参数
+./m3u8-downloader http://m3u8.address --temp="temp_path"
+```
+
 - 使用 Http 代理
 
-```rust
+```shell
 // 任意位置添加参数即可
 --proxy=http://127.0.0.1:1081
 ```
 
 - 设置Http Header
 
-```rust
+```shell
 // 任意位置添加参数
 --H="refer:https://yourAddress" --H="origin: http://yourOrigin"
 ```
@@ -73,10 +80,10 @@ FFMPEG_PATH="/ffmpeg/bin"
 
 - 设置下载任务的线程数
 
-```rust
+```shell
 --worker=4  // 手动指定线程数，默认为4
 ```
 
 # 3. 下载失败
 
-有时会下载失败，不知道为什么。可以原地重新下载，已经下载好的文件会跳过，不会重复下载
+由于网络等原因，有时会下载失败。可以重新下载，只要指定上一次下载所使用的临时目录，已经下载好的文件会跳过，不会重复下载

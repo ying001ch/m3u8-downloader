@@ -14,7 +14,7 @@ fn encrypt(content: &[u8], key:&[u8], iv:&[u8]) -> Vec<u8>{
     result
 }
 pub fn decrypt(encry_content: &[u8], key:&[u8], iv:&[u8]) -> Result<Vec<u8>, String>{
-    let cipher = Aes128Cbc::new_from_slices(&key, &iv).unwrap();
+    let cipher = Aes128Cbc::new_from_slices(key, iv).unwrap();
     match cipher.decrypt_vec(encry_content){
         Ok(t)=>Ok(t),
         Err(e)=>Err(e.to_string())
