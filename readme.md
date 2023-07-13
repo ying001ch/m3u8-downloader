@@ -45,7 +45,7 @@ FFMPEG_PATH="/ffmpeg/bin"
 
 ```shell
 // --output可省略 使用默认名称
-./m3u8-downloader --combine ./video_clip_dir --output=download_name.mp4
+./m3u8-downloader --combine="./video_clip_dir" --output=download_name.mp4
 ```
 
 > 会根据视频名称进行排序，只会添加 名称里包含 `.ts` 的文件
@@ -64,11 +64,11 @@ FFMPEG_PATH="/ffmpeg/bin"
 --proxy=http://127.0.0.1:1081
 ```
 
-- 设置Http Header
+- 设置Http Header，多个以分号隔开
 
 ```shell
 // 任意位置添加参数
---H="refer:https://yourAddress" --H="origin: http://yourOrigin"
+--H="refer:https://yourAddress;origin: http://yourOrigin"
 ```
 
 - 设置key
@@ -78,10 +78,16 @@ FFMPEG_PATH="/ffmpeg/bin"
 --key="D2BAfb82c3GAf4EA"
 ```
 
-- 设置下载任务的线程数
+- 设置下载任务的并行数量，即允许同时下载多少个片段；设置过大可能会导致请求超时
 
 ```shell
---worker=4  // 手动指定线程数，默认为4
+--worker=16  // 手动指定线程数，默认为16
+```
+
+- 只下载不合并片段
+
+```shell
+./m3u8-downloader http://m3u8.address --noCombine
 ```
 
 # 3. 下载失败

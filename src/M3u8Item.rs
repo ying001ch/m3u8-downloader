@@ -1,18 +1,15 @@
 use std::collections::hash_map::DefaultHasher;
 use std::env;
-use std::error::Error;
-use std::fmt::format;
 use std::hash::{Hash, Hasher};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::http_util;
-use crate::{str_util};
+use crate::str_util;
 use crate::config;
 use anyhow::{Result, bail, Context};
-use serde::{Serialize, Deserialize};
 
 //下载任务 参数
-#[derive(Serialize, Deserialize, Debug,Default)]
+#[derive(Debug,Default)]
 pub struct DownParam {
     pub address: String,
     pub save_path: String,
@@ -28,6 +25,7 @@ pub struct DownParam {
 }
 impl DownParam {
     pub fn from_cmd() -> Self{
+        const DEFAULT_WORKER_NUM:usize = 16;
         let mut param = DownParam::default();
         println!("===>param::default : {:?}", param);
         //获取命令
@@ -49,7 +47,7 @@ impl DownParam {
                 param.key_str = Some(s.replace("--key=",""));
             }else if s.contains("--worker="){ //下载线程数
                 param.worker_num = s.replace("--worker=", "")
-                    .parse().unwrap_or(80);
+                    .parse().unwrap_or(DEFAULT_WORKER_NUM);
             }else if s.contains("--noCombine"){ //只下载不合并
                 param.no_combine = true;
             }else if s.contains("--file="){
@@ -60,7 +58,7 @@ impl DownParam {
             }
         });
         if param.worker_num <= 0 {
-            param.worker_num = 4;
+            param.worker_num = DEFAULT_WORKER_NUM;
         }
         println!("===>param : {:?}", param);
         param

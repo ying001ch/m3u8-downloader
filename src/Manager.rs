@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use anyhow::bail;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use tokio::join;
 use tokio::sync::Semaphore;
 use tokio::task::AbortHandle;
 use tokio::task::JoinHandle;
@@ -9,7 +10,6 @@ use anyhow::Result;
 
 use crate::aes_util;
 use crate::combine;
-use crate::config::Signal;
 use crate::http_util;
 use crate::M3u8Item;
 use crate::M3u8Item::DownParam;
@@ -92,7 +92,6 @@ fn run(param: DownParam, async_task: bool) -> Result<()>{
     
     
     let entity = M3u8Item::M3u8Entity::from(&param)?;
-    config::add_task(&entity)?; //使用片段临时路径 创建任务状态信息
     let one = move ||{
         let temp_path = entity.temp_path.clone();
         let save_path = entity.save_path.clone();
@@ -102,11 +101,6 @@ fn run(param: DownParam, async_task: bool) -> Result<()>{
                 .block_on(download_async(entity));
         let spend_time = st.elapsed().unwrap().as_secs();
 
-        println!("status is {:?}", config::get_status(&temp_path));
-        if config::is_abort(&temp_path){
-            println!("--->下载暂停");
-            return ;
-        }
         println!("下载完毕！总耗时：{}s no_combine:{}", spend_time, param.no_combine);
 
         //合并片段
@@ -144,7 +138,6 @@ async fn download_async(entity: M3u8Item::M3u8Entity){
             let down_file_path = format!("{}/{}.ts", temp_path_clone, make_name(idx as i32 +1));
             if tokio::fs::File::open(down_file_path.clone()).await.is_ok() {
                 //文件已经存在，无需下载
-                config::add_prog(&temp_path_clone);
                 drop(permit);
                 return;
             }
@@ -161,7 +154,6 @@ async fn download_async(entity: M3u8Item::M3u8Entity){
                     drop(permit);
                     return;
                 }
-                // put_retry(&mut retry_num, &clone_pkg, clip_index, &clip);
                 bytes = http_util::query_bytes_async(&down_url, 0 as i32).await;
                 err_num += 1;
             }
@@ -186,8 +178,6 @@ async fn download_async(entity: M3u8Item::M3u8Entity){
             if let Err(e) = res{
                 println!("写入片段[{}]失败， err={}", idx + 1, e);
                 err_clone.lock().unwrap().push(idx);
-            }else{
-                config::add_prog(&temp_path_clone);
             }
             drop(permit);
         });
@@ -202,34 +192,13 @@ async fn download_async(entity: M3u8Item::M3u8Entity){
         // }
     }
     println!("join_v len = {}", join_v.len());
-    // 创建监控线程，abort()任务
-    let abort_v:Vec<AbortHandle> = join_v.iter()
-            .map(|j|j.abort_handle())
-            .collect();
-    config::add_abort_handles(&temp_path, abort_v);
 
-    let mut idx = 1;
     for j in join_v{
-        // println!("===> handler={} 开始执行",idx);
         let _ = j.await;
-        // println!("===> handler={} 执行结束", idx);
-        idx += 1;
     }
     
     if err_clips.lock().unwrap().len() > 0{
         println!("以下片段出错没有下载完成: {:?}", err_clips.lock().unwrap());
-        config::set_signal(&entity.temp_path, Signal::Exception);
-    }
-    //TODO 正常下载完成时设置标记为end
-    if config::is_normal(&temp_path){
-        config::set_signal(&entity.temp_path, Signal::End);
-    }
-}
-async fn exec_group(join_v: Vec<JoinHandle<()>>){
-    for j in join_v.into_iter() {
-        println!("===> handler= 开始执行");
-        j.await;
-        println!("===> handler= 执行结束");
     }
 }
 
