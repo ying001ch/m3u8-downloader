@@ -14,6 +14,8 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    container:
+      image: "centos:7"  # 需要运行的容器镜像（参考 docker hub）
 
     steps:
     - uses: actions/checkout@v3
