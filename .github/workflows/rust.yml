@@ -27,7 +27,7 @@ jobs:
         cp target/release/m3u8-downloader dist/ # 将可执行文件复制到dist目录
           
     - name: Upload artifact
-      uses: actions/upload-artifact@v2 # 上传artifact
+      uses: actions/upload-artifact@v4.0.0 # 上传artifact
       with:
         name: m3u8-downloader # 指定artifact名称
-        path: dist # 指定artifact路径
+        path: dist/m3u8-downloader # 指定artifact路径
