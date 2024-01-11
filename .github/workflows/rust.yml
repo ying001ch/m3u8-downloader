@@ -24,7 +24,7 @@ jobs:
     - name: Create artifact
       run: |
         mkdir dist # 创建dist目录
-        cp target/debug/m3u8-downloader dist/ # 将可执行文件复制到dist目录
+        cp target/release/m3u8-downloader dist/ # 将可执行文件复制到dist目录
           
     - name: Upload artifact
       uses: actions/upload-artifact@v2 # 上传artifact
