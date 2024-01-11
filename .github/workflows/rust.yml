@@ -21,3 +21,13 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+    - name: Create artifact
+      run: |
+        mkdir dist # 创建dist目录
+        cp target/debug/m3u8-downloader dist/ # 将可执行文件复制到dist目录
+          
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2 # 上传artifact
+      with:
+        name: m3u8-downloader # 指定artifact名称
+        path: dist # 指定artifact路径
