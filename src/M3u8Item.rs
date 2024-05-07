@@ -173,12 +173,14 @@ impl M3u8Entity {
         }
 
         let pr = param.key_str.as_ref();
-        if pr.filter(|f|!f.is_empty()).is_some() {
-            let bar = pr.unwrap().to_string().into_bytes();
-            let mut k = [0u8;16];
-            for i in 0..k.len(){
-                k[i] = bar[i];
+        if let Some(s) = pr.filter(|f|!f.is_empty()) {
+            let bar = s.to_string().into_bytes();
+            if bar.len() != 16{
+                bail!("长度错误,key_str不是16位");
             }
+            let mut k = [0u8;16];
+            let len = k.len();
+            k.copy_from_slice(&bar[..len]);
 
             self.key = k;
             println!("key_bytes={:?}", self.key);
