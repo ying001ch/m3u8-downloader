@@ -145,7 +145,7 @@ async fn download_async(entity: M3u8Item::M3u8Entity){
             let down_url = prefix_clone.to_string() + clip_clone.as_str();
             // println!("--> {}", down_url);
 
-            let mut bytes = http_util::query_bytes_async(&down_url,0 as i32).await;
+            let mut bytes = http_util::query_bytes_async(&down_url,0i32).await;
             let mut err_num = 1;
             while let Err(err) = bytes {
                 println!("下载片段({})出错：{}, err_num={}", idx, err, err_num);
@@ -154,7 +154,7 @@ async fn download_async(entity: M3u8Item::M3u8Entity){
                     drop(permit);
                     return;
                 }
-                bytes = http_util::query_bytes_async(&down_url, 0 as i32).await;
+                bytes = http_util::query_bytes_async(&down_url, 0i32).await;
                 err_num += 1;
             }
             println!("片段({})下载完成 len: {}", idx, bytes.as_ref().map(|op|op.len()).unwrap());

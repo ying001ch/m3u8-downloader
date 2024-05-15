@@ -6,11 +6,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.11.18", features = ["blocking"] }
+reqwest = { version = "0.12.4", features = ["blocking"] }
 aes = "0.7.4"
 block-modes = "0.8.1"
 bytes = "1.4.0"
-tokio = {version = "1.28.1", features = ["full"]}
+tokio = {version = "1.37.0", features = ["full"]}
 anyhow = { version = "1.0"}
 
 [profile.release]

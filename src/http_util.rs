@@ -67,26 +67,15 @@ pub fn query_text(url: &str) -> Result<String> {
 fn get_client2(idx: i32)-> Arc<reqwest::Client>{
     let mut guard = ASYNC_CLIENT.lock().unwrap();
     if guard.is_none() {
-        let mut builder = reqwest::Client::builder()
-            .timeout(Duration::from_secs(60));
-
-        // let mut builder = reqwest::blocking::Client::builder();
-        let p = get_proxy();
-        if p.len()>0 {
-            let proxy = reqwest::Proxy::all(p.as_str())
-                    .expect("socks proxy should be there");
-            builder = builder.proxy(proxy);
-        }
-        let cli = builder.build().expect("build clent failed.");
-        *guard = Some(Arc::new(cli));
+        *guard = build_client();
     }
     guard.as_ref().map(|f|f.clone()).unwrap()
     
 }
-pub fn update_client(){
-    let mut guard = ASYNC_CLIENT.lock().unwrap();
+
+fn build_client() -> Option<Arc<reqwest::Client>>{
     let mut builder = reqwest::Client::builder()
-            .timeout(Duration::from_secs(60));
+        .timeout(Duration::from_secs(60));
 
     // let mut builder = reqwest::blocking::Client::builder();
     let p = get_proxy();
@@ -96,8 +85,12 @@ pub fn update_client(){
         builder = builder.proxy(proxy);
     }
     let cli = builder.build().expect("build clent failed.");
-    *guard = Some(Arc::new(cli));
-    println!("=========> 更新proxy成功： proxy:{}",p);
+    return Some(Arc::new(cli));
+}
+pub fn update_client(){
+    let mut guard = ASYNC_CLIENT.lock().unwrap();
+    *guard = build_client();
+    println!("=========> 更新proxy成功： proxy:{}",get_proxy());
 }
 fn get_client(idx: i32)-> Client{
 
