@@ -1,10 +1,18 @@
-# 0. 为什么要做
+# 0. 开始
 
-偶然间看到了 Rust 觉得这个语言挺有意思，就想着学来玩儿一下，做个东西练练手。
+偶然间看到了 Rust 觉得这个语言觉得很有意思，做个东西练练手。
 
-- 为什么要做M3u8下载器？
 
-现在很多视频网站的视频都是m3u8的，想下载下来看，虽然市面上有很多很强大的下载器，如IDM 迅雷、XDM等，他们都做得很出色，但是因为种种原因，有些文件是主动不提供下载的。M3u8解析起来也比较简单，正好适合 魔域时间写着玩 也是作为练习吧！
+
+很多视频网站的视频都是m3u8格式的，想下载下来看，虽然市面上有很多很强大的下载器，如IDM、迅雷、XDM等，他们都做得很出色，但是因为种种原因，有些文件是主动不提供下载的。M3u8解析起来也比较简单，就作为Rust语言的练习
+
+
+
+基于此项目使用Tauri 包装而成的GUI项目
+
+**Github**: https://github.com/ying001ch/m3u8-grabber
+
+**Gitee**: https://gitee.com/ying001ch/m3u8-grabber
 
 
 
@@ -45,7 +53,7 @@ FFMPEG_PATH="/ffmpeg/bin"
 
 ```shell
 // --output可省略 使用默认名称
-./m3u8-downloader --combine ./video_clip_dir --output=download_name.mp4
+./m3u8-downloader --combine="./video_clip_dir" --output=download_name.mp4
 ```
 
 > 会根据视频名称进行排序，只会添加 名称里包含 `.ts` 的文件
@@ -64,11 +72,11 @@ FFMPEG_PATH="/ffmpeg/bin"
 --proxy=http://127.0.0.1:1081
 ```
 
-- 设置Http Header
+- 设置Http Header，多个以分号隔开
 
 ```shell
 // 任意位置添加参数
---H="refer:https://yourAddress" --H="origin: http://yourOrigin"
+--H="refer:https://yourAddress;origin: http://yourOrigin"
 ```
 
 - 设置key
@@ -78,10 +86,16 @@ FFMPEG_PATH="/ffmpeg/bin"
 --key="D2BAfb82c3GAf4EA"
 ```
 
-- 设置下载任务的线程数
+- 设置下载任务的并行数量，即允许同时下载多少个片段；设置过大可能会导致请求超时
 
 ```shell
---worker=4  // 手动指定线程数，默认为4
+--worker=16  // 手动指定并行任务数，默认为16
+```
+
+- 只下载不合并片段
+
+```shell
+./m3u8-downloader http://m3u8.address --noCombine
 ```
 
 # 3. 下载失败
