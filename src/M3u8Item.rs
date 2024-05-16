@@ -192,18 +192,12 @@ impl M3u8Entity {
         }
         println!("req_key key_url={}", &self.key_url);
         let raw_bytes = http_util::query_bytes(&self.key_url,0)?;
-        let mut key_bytes = [0u8;16];
         let len = raw_bytes.len();
         if len != 16 {
             bail!("requested key length is not 16")
         }
-        let mut idx=0;
-        for b in *raw_bytes {
-            key_bytes[idx] = b;
-            idx += 1;
-        }
-        self.key = key_bytes;
-        println!("key_bytes={:?}", key_bytes);
+        self.key.copy_from_slice(&raw_bytes[..len]);
+        println!("key_bytes={:?}", raw_bytes);
         Ok(())
     }
     pub fn need_decode(&self)-> bool{
